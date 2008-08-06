@@ -30,11 +30,48 @@ describe MarshalDb::Dump do
 
 	it "should return a list of files for a table in a directory" do
 		Dir.stub!(:glob).with("test/mytable.*").and_return(['mytable.0', 'mytable.1'])
-		MarshalDb::Load.table_files('test', 'mytable').should == ['mytable.0', 'mytable.1']
+		MarshalDb::Load.table_data_files('test', 'mytable').should == ['mytable.0', 'mytable.1']
 	end
 
 	it "should skip the metadata.dat file" do
 		Dir.stub!(:glob).with("test/metadata.*").and_return(['metadata.0', 'metadata.1', 'metadata.dat'])
-		MarshalDb::Load.table_files('test', 'metadata').should == ['metadata.0', 'metadata.1']
+		MarshalDb::Load.table_data_files('test', 'metadata').should == ['metadata.0', 'metadata.1']
+	end
+
+	it "should insert records into a table" do
+		ActiveRecord::Base.connection.stub!(:quote).with(1).and_return("'1'")
+		ActiveRecord::Base.connection.stub!(:quote).with(2).and_return("'2'")
+		ActiveRecord::Base.connection.stub!(:quote).with(3).and_return("'3'")
+		ActiveRecord::Base.connection.stub!(:quote).with(4).and_return("'4'")
+		ActiveRecord::Base.connection.should_receive(:execute).with("INSERT INTO mytable (a,b) VALUES ('1','2')")
+		ActiveRecord::Base.connection.should_receive(:execute).with("INSERT INTO mytable (a,b) VALUES ('3','4')")
+
+		MarshalDb::Load.load_records('mytable', ['a', 'b'], [[1, 2], [3, 4]])
+	end
+
+	it "should call Marshal.load on every data file for a table" do
+		@io.write(Marshal.dump([{'a'=>0,'b'=>1}]))
+		@io.rewind
+		File.stub!(:open).with('test/mytable.0', 'r').and_return(@io)
+
+		MarshalDb::Load.stub!(:table_data_files).with('test', 'mytable').and_return(['mytable.0'])
+		MarshalDb::Load.should_receive(:load_records).with('mytable', ['a', 'b'], [{'a'=>0,'b'=>1}])
+		MarshalDb::Load.load_table_data('test', 'mytable', ['a', 'b'])
+	end
+
+	it "should load the metadata.dat file" do
+		@io.write(Marshal.dump([{'table' => 'mytable', 'columns' => ['a','b']}]))
+		@io.rewind
+		File.stub!(:open).with('test/metadata.dat', 'r').and_return(@io)
+		
+		MarshalDb::Load.metadata('test').should == [{'table' => 'mytable', 'columns' => ['a','b']}]
+	end
+
+	it "should iterate through each table in the metadata and truncate the table and load the data" do
+		MarshalDb::Load.should_receive(:metadata).with('test').and_return([{'table' => 'mytable', 'columns' => ['a','b']}])
+		MarshalDb::Load.should_receive(:truncate_table).with('mytable')
+		MarshalDb::Load.should_receive(:load_table_data).with('test', 'mytable', ['a', 'b'])
+
+		MarshalDb::Load.load('test')
 	end
 end

@@ -104,12 +104,25 @@ end
 
 module MarshalDb::Load
 	def self.load(directory)
+		metadata(directory).each do |m|
+			truncate_table(m['table'])
+			load_table_data(directory, m['table'], m['columns'])
+		end
 	end
 
-	def self.load_table_data(table, files)
+	def self.load_table_data(directory, table, columns)
+		data_files = table_data_files(directory, table)
+		data_files.each do |data_file|
+			records = Marshal.load(File.open("#{directory}/#{data_file}", 'r').read)
+			load_records(table, columns, records)
+		end
 	end
 
-	def self.table_files(directory, table)
+	def self.metadata(directory)
+		Marshal.load(File.open("#{directory}/#{MarshalDb::METADATA_FILE}", 'r').read)
+	end
+
+	def self.table_data_files(directory, table)
 		files = Dir.glob("#{directory}/#{table}.*")
 		files = files.reject { |file| file == MarshalDb::METADATA_FILE }
 		files
@@ -120,6 +133,12 @@ module MarshalDb::Load
 			ActiveRecord::Base.connection.execute("TRUNCATE #{table}")
 		rescue Exception
 			ActiveRecord::Base.connection.execute("DELETE FROM #{table}")
+		end
+	end
+
+	def self.load_records(table, columns, records)
+		records.each do |record|
+			ActiveRecord::Base.connection.execute("INSERT INTO #{table} (#{columns.join(',')}) VALUES (#{record.map { |r| ActiveRecord::Base.connection.quote(r) }.join(',')})")
 		end
 	end
 end
