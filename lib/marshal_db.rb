@@ -46,7 +46,7 @@ module MarshalDb::Dump
 	end
 
 	def self.dump_data(directory)
-		ActiveRecord::Base.connection.tables.each do |table|
+		tables.each do |table|
 			dump_table_data(directory, table)
 		end
 	end
@@ -61,7 +61,7 @@ module MarshalDb::Dump
 
 	def self.dump_metadata(directory)
 		metadata = []
-		ActiveRecord::Base.connection.tables.each do |table|
+		tables.each do |table|
 			metadata << table_metadata(table)
 		end
 		metadata
@@ -81,8 +81,8 @@ module MarshalDb::Dump
 		pages = table_pages(table, records_per_page) - 1
 
 		(0..pages).to_a.each do |page|
-			sql_limit = "LIMIT #{records_per_page} OFFSET #{records_per_page*page}"
-			records = ActiveRecord::Base.connection.select_all("SELECT * FROM #{table} ORDER BY #{id} #{sql_limit}")
+			sql = ActiveRecord::Base.connection.add_limit_offset!("SELECT * FROM #{table} ORDER BY #{id}", { :limit => records_per_page, :offset => records_per_page * page })
+			records = ActiveRecord::Base.connection.select_all(sql)
 			yield records
 		end
 	end
@@ -99,6 +99,10 @@ module MarshalDb::Dump
 
 	def self.table_column_names(table)
 		ActiveRecord::Base.connection.columns(table).map { |c| c.name }
+	end
+
+	def self.tables
+		ActiveRecord::Base.connection.tables.reject { |table| ['schema_info', 'schema_migrations'].include?(table) }
 	end
 end
 

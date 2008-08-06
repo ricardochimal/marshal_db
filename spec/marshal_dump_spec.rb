@@ -4,7 +4,7 @@ describe MarshalDb::Dump do
 	before do
 		ActiveRecord::Base = mock('ActiveRecord::Base', :null_object => true)
 		ActiveRecord::Base.connection = mock('connection')
-		ActiveRecord::Base.connection.stub!(:tables).and_return([ 'mytable' ])
+		ActiveRecord::Base.connection.stub!(:tables).and_return([ 'mytable', 'schema_info', 'schema_migrations' ])
 		ActiveRecord::Base.connection.stub!(:columns).with('mytable').and_return([ mock('a',:name => 'a'), mock('b', :name => 'b') ])
 		ActiveRecord::Base.connection.stub!(:select_one).and_return({"count"=>"2"})
 		ActiveRecord::Base.connection.stub!(:select_all).and_return([ { 'a' => 1, 'b' => 2 }, { 'a' => 3, 'b' => 4 } ])
@@ -20,6 +20,10 @@ describe MarshalDb::Dump do
 
 	it "should return the total number of records in a table" do
 		MarshalDb::Dump.table_record_count('mytable').should == 2
+	end
+
+	it "should return a list of tables without the rails schema table" do
+		MarshalDb::Dump.tables.should == ['mytable']
 	end
 
 	it "should return the number of 'pages' in a table" do
