@@ -12,12 +12,12 @@ namespace :db do
 
 		desc "Dump contents of database to db/marshal_db"
 		task(:dump => :environment) do
-			MarshalDb.dump db_dump_directory
+			MarshalDb.dump(db_dump_directory)
 		end
 
 		desc "Load contents of db/marshal_db into database"
 		task(:load => :environment) do
-			MarshalDb.load db_dump_directory
+			MarshalDb.load(db_dump_directory)
 		end
 	end
 end

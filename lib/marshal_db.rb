@@ -3,6 +3,7 @@ require 'active_record'
 
 module MarshalDb
 	def self.dump(directory)
+		MarshalDb::Dump.dump(directory)
 	end
 
 	def self.load(directory)
@@ -21,8 +22,22 @@ end
 
 module MarshalDb::Dump
 	def self.dump(directory)
+		directory_checks(directory)
 		dump_metadata(directory)
 		dump_data(directory)
+	end
+
+	def self.directory_checks(directory)
+		if File.exists?(directory) and !File.directory?(directory)
+			#$stderr.print "ERROR: #{directory} is not a directory!\n"
+			raise "ERROR: #{directory} is not a directory!\n"
+		end
+
+		if !File.exists?(directory)
+			FileUtils.mkdir(directory)
+		end
+
+		FileUtils.rm(Dir.glob("#{directory}/*"), :force => true)
 	end
 
 	def self.dump_data(directory)
@@ -56,7 +71,7 @@ module MarshalDb::Dump
 		}
 	end
 
-	def self.each_table_page(table, records_per_page=1000)
+	def self.each_table_page(table, records_per_page=50000)
 		id = table_column_names(table).first
 		pages = table_pages(table, records_per_page) - 1
 
