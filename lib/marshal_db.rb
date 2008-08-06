@@ -3,7 +3,9 @@ require 'active_record'
 
 module MarshalDb
 	def self.dump(directory)
+		disable_logger
 		MarshalDb::Dump.dump(directory)
+		reenable_logger
 	end
 
 	def self.load(directory)
@@ -94,5 +96,19 @@ module MarshalDb::Dump
 
 	def self.table_column_names(table)
 		ActiveRecord::Base.connection.columns(table).map { |c| c.name }
+	end
+end
+
+
+module MarshalDb::Load
+	def self.load(directory)
+	end
+
+	def self.truncate_table(table)
+		begin
+			ActiveRecord::Base.connection.execute("TRUNCATE #{table}")
+		rescue Exception
+			ActiveRecord::Base.connection.execute("DELETE FROM #{table}")
+		end
 	end
 end
