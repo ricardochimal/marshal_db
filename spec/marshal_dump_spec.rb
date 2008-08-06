@@ -70,4 +70,10 @@ describe MarshalDb::Dump do
 		MarshalDb::Dump.should_receive(:dump_table_data).with('test', 'mytable')
 		MarshalDb::Dump.dump_data('test')
 	end
+
+	it "should call dump_metadata and dump_data" do
+		MarshalDb::Dump.should_receive(:dump_metadata).with('test')
+		MarshalDb::Dump.should_receive(:dump_data).with('test')
+		MarshalDb::Dump.dump('test')
+	end
 end

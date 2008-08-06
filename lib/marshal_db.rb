@@ -21,7 +21,8 @@ end
 
 module MarshalDb::Dump
 	def self.dump(directory)
-		
+		dump_metadata(directory)
+		dump_data(directory)
 	end
 
 	def self.dump_data(directory)
