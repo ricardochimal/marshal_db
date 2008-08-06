@@ -1,0 +1,48 @@
+require File.dirname(__FILE__) + '/base'
+
+describe MarshalDb::Dump do
+	before do
+		#File.stub!(:new).with('dump.yml', 'w').and_return(StringIO.new)
+
+		ActiveRecord::Base = mock('ActiveRecord::Base', :null_object => true)
+		ActiveRecord::Base.connection = mock('connection')
+		ActiveRecord::Base.connection.stub!(:tables).and_return([ 'mytable' ])
+		ActiveRecord::Base.connection.stub!(:columns).with('mytable').and_return([ mock('a',:name => 'a'), mock('b', :name => 'b') ])
+		ActiveRecord::Base.connection.stub!(:select_one).and_return({"count"=>"2"})
+		ActiveRecord::Base.connection.stub!(:select_all).and_return([ { 'a' => 1, 'b' => 2 }, { 'a' => 3, 'b' => 4 } ])
+	end
+
+	before(:each) do
+		@io = StringIO.new
+	end
+
+	it "should return a list of column names" do
+		MarshalDb::Dump.table_column_names('mytable').should == [ 'a', 'b' ]
+	end
+
+	it "should return the total number of records in a table" do
+		MarshalDb::Dump.table_record_count('mytable').should == 2
+	end
+
+	it "should return all records from the database and return them when there is only 1 page" do
+		MarshalDb::Dump.each_table_page('mytable') do |records|
+			records.should == [ { 'a' => 1, 'b' => 2 }, { 'a' => 3, 'b' => 4 } ]
+		end
+	end
+
+	it "should paginate records from the database and return them" do
+		ActiveRecord::Base.connection.stub!(:select_all).and_return([ { 'a' => 1, 'b' => 2 } ], [ { 'a' => 3, 'b' => 4 } ])
+
+		records = [ ]
+		MarshalDb::Dump.each_table_page('mytable', 1) do |page|
+			page.size.should == 1
+			records.concat(page)
+		end
+
+		records.should == [ { 'a' => 1, 'b' => 2 }, { 'a' => 3, 'b' => 4 } ]
+	end
+
+	it "should return the table's metadata" do
+		MarshalDb::Dump.table_metadata('mytable').should == { 'table' => 'mytable', 'columns' => ['a', 'b'] }
+	end
+end
