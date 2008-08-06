@@ -21,6 +21,21 @@ end
 
 module MarshalDb::Dump
 	def self.dump(directory)
+		
+	end
+
+	def self.dump_data(directory)
+		ActiveRecord::Base.connection.tables.each do |table|
+			dump_table_data(directory, table)
+		end
+	end
+
+	def self.dump_table_data(directory, table)
+		page = 0
+		each_table_page(table) do |records|
+			File.open("#{directory}/#{table}.#{page}", 'w') { |f| f.write(Marshal.dump(records)) }
+			page += 1
+		end
 	end
 
 	def self.dump_metadata(directory)

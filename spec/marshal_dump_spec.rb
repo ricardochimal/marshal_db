@@ -58,4 +58,16 @@ describe MarshalDb::Dump do
 		@io.read.should == Marshal.dump([ { 'table' => 'mytable', 'columns' => ['a', 'b'] } ])
 	end
 
+	it "should write out a table's data to a file" do
+		File.stub!(:open).with('test/mytable.0', 'w').and_yield(@io)
+		MarshalDb::Dump.stub!(:each_table_page).with('mytable').and_yield([ { 'a' => 1, 'b' => 2 }, { 'a' => 3, 'b' => 4 } ])
+		MarshalDb::Dump.dump_table_data('test', 'mytable')
+		@io.rewind
+		@io.read.should == Marshal.dump([ { 'a' => 1, 'b' => 2 }, { 'a' => 3, 'b' => 4 } ])
+	end
+
+	it "should dump all table data" do
+		MarshalDb::Dump.should_receive(:dump_table_data).with('test', 'mytable')
+		MarshalDb::Dump.dump_data('test')
+	end
 end
