@@ -2,8 +2,6 @@ require File.dirname(__FILE__) + '/base'
 
 describe MarshalDb::Dump do
 	before do
-		#File.stub!(:new).with('dump.yml', 'w').and_return(StringIO.new)
-
 		ActiveRecord::Base = mock('ActiveRecord::Base', :null_object => true)
 		ActiveRecord::Base.connection = mock('connection')
 		ActiveRecord::Base.connection.stub!(:tables).and_return([ 'mytable' ])

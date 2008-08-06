@@ -5,29 +5,28 @@ module MarshalDb
 	METADATA_FILE = 'metadata.dat'
 
 	def self.dump(directory)
-		disable_logger
-		MarshalDb::Dump.dump(directory)
-		reenable_logger
+		process do
+			MarshalDb::Dump.dump(directory)
+		end
 	end
 
 	def self.load(directory)
-		disable_logger
-		MarshalDb::Load.load(directory)
-		reenable_logger
+		process do
+			MarshalDb::Load.load(directory)
+		end
 	end
 
-	def self.disable_logger
-		@@old_logger = ActiveRecord::Base.logger
-		ActiveRecord::Base.logger = nil
-	end
-
-	def self.reenable_logger
-		ActiveRecord::Base.logger = @@old_logger
+	def self.process
+		old_logger = ActiveRecord::Base.logger
+		yield if block_given?
+		ActiveRecord::Base.logger = old_logger
 	end
 end
 
 
 module MarshalDb::Dump
+	class DirectoryError < RuntimeError ; end
+
 	def self.dump(directory)
 		directory_checks(directory)
 		dump_metadata(directory)
@@ -36,8 +35,7 @@ module MarshalDb::Dump
 
 	def self.directory_checks(directory)
 		if File.exists?(directory) and !File.directory?(directory)
-			#$stderr.print "ERROR: #{directory} is not a directory!\n"
-			raise "ERROR: #{directory} is not a directory!\n"
+			raise DirectoryError, "ERROR: #{directory} is not a directory!"
 		end
 
 		if !File.exists?(directory)

@@ -8,8 +8,8 @@ Any database that has an ActiveRecord adapter should work.
 
 == Usage
 
-rake db:data:dump   ->   Dump contents of Rails database to db/marshal_db/
-rake db:data:load   ->   Load contents of db/marshal_db/ into the database
+rake db:marshal:dump   ->   Dump contents of Rails database to db/marshal_db.zip
+rake db:marshal:load   ->   Load contents of db/marshal_db.zip into the database
 
 == Credits
 
