@@ -24,6 +24,11 @@ describe MarshalDb::Dump do
 		MarshalDb::Dump.table_record_count('mytable').should == 2
 	end
 
+	it "should return the number of 'pages' in a table" do
+		MarshalDb::Dump.stub!(:table_record_count).with('mytable').and_return(20)
+		MarshalDb::Dump.table_pages('mytable', 7).should == 3
+	end
+
 	it "should return all records from the database and return them when there is only 1 page" do
 		MarshalDb::Dump.each_table_page('mytable') do |records|
 			records.should == [ { 'a' => 1, 'b' => 2 }, { 'a' => 3, 'b' => 4 } ]
@@ -45,4 +50,12 @@ describe MarshalDb::Dump do
 	it "should return the table's metadata" do
 		MarshalDb::Dump.table_metadata('mytable').should == { 'table' => 'mytable', 'columns' => ['a', 'b'] }
 	end
+
+	it "should dump an array of all table's metadata to a file" do
+		File.stub!(:open).with('test/metadata.dat', 'w').and_yield(@io)
+		MarshalDb::Dump.dump_metadata('test')
+		@io.rewind
+		@io.read.should == Marshal.dump([ { 'table' => 'mytable', 'columns' => ['a', 'b'] } ])
+	end
+
 end
