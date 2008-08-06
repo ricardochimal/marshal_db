@@ -37,6 +37,8 @@ describe MarshalDb::Load do
 	end
 
 	it "should insert records into a table" do
+		ActiveRecord::Base.connection.stub!(:quote_column_name).with('a').and_return('a')
+		ActiveRecord::Base.connection.stub!(:quote_column_name).with('b').and_return('b')
 		ActiveRecord::Base.connection.stub!(:quote).with(1).and_return("'1'")
 		ActiveRecord::Base.connection.stub!(:quote).with(2).and_return("'2'")
 		ActiveRecord::Base.connection.stub!(:quote).with(3).and_return("'3'")

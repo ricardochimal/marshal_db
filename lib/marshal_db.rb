@@ -140,9 +140,10 @@ module MarshalDb::Load
 	end
 
 	def self.load_records(table, columns, records)
+		quoted_columns = columns.map { |column| ActiveRecord::Base.connection.quote_column_name(column) }.join(',')
 		records.each do |record|
-			data = columns.map { |c| ActiveRecord::Base.connection.quote(record[c]) }
-			ActiveRecord::Base.connection.execute("INSERT INTO #{table} (#{columns.join(',')}) VALUES (#{data.join(',')})")
+			quoted_values = columns.map { |c| ActiveRecord::Base.connection.quote(record[c]) }.join(',')
+			ActiveRecord::Base.connection.execute("INSERT INTO #{table} (#{quoted_columns}) VALUES (#{quoted_values})")
 		end
 	end
 
