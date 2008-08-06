@@ -46,7 +46,7 @@ describe MarshalDb::Dump do
 		ActiveRecord::Base.connection.should_receive(:execute).with("INSERT INTO mytable (a,b) VALUES ('1','2')")
 		ActiveRecord::Base.connection.should_receive(:execute).with("INSERT INTO mytable (a,b) VALUES ('3','4')")
 
-		MarshalDb::Load.load_records('mytable', ['a', 'b'], [[1, 2], [3, 4]])
+		MarshalDb::Load.load_records('mytable', ['a', 'b'], [{'a'=>1,'b'=>2}, {'a'=>3,'b'=>4}])
 	end
 
 	it "should call Marshal.load on every data file for a table" do

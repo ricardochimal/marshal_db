@@ -11,11 +11,14 @@ module MarshalDb
 	end
 
 	def self.load(directory)
+		disable_logger
+		MarshalDb::Load.load(directory)
+		reenable_logger
 	end
 
 	def self.disable_logger
 		@@old_logger = ActiveRecord::Base.logger
-		ActiveRecord.Base.logger = nil
+		ActiveRecord::Base.logger = nil
 	end
 
 	def self.reenable_logger
@@ -124,7 +127,8 @@ module MarshalDb::Load
 
 	def self.table_data_files(directory, table)
 		files = Dir.glob("#{directory}/#{table}.*")
-		files = files.reject { |file| file == MarshalDb::METADATA_FILE }
+		files.map! { |file| File.basename(file) }
+		files.reject! { |file| file == MarshalDb::METADATA_FILE }
 		files
 	end
 
@@ -138,7 +142,8 @@ module MarshalDb::Load
 
 	def self.load_records(table, columns, records)
 		records.each do |record|
-			ActiveRecord::Base.connection.execute("INSERT INTO #{table} (#{columns.join(',')}) VALUES (#{record.map { |r| ActiveRecord::Base.connection.quote(r) }.join(',')})")
+			data = columns.map { |c| ActiveRecord::Base.connection.quote(record[c]) }
+			ActiveRecord::Base.connection.execute("INSERT INTO #{table} (#{columns.join(',')}) VALUES (#{data.join(',')})")
 		end
 	end
 end
