@@ -73,8 +73,8 @@ describe MarshalDb::Dump do
 		MarshalDb::Dump.dump_data('test')
 	end
 
-	it "should call directory_checks, dump_metadata and dump_data" do
-		MarshalDb::Dump.should_receive(:directory_checks).with('test')
+	it "should create the work directory, dump the metadata and then dump the actual data" do
+		MarshalDb.should_receive(:create_work_directory).with('test')
 		MarshalDb::Dump.should_receive(:dump_metadata).with('test')
 		MarshalDb::Dump.should_receive(:dump_data).with('test')
 		MarshalDb::Dump.dump('test')

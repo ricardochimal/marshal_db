@@ -4,13 +4,15 @@ require 'active_record'
 module MarshalDb
 	METADATA_FILE = 'metadata.dat'
 
-	def self.dump(directory)
+	def self.dump(zipfile, directory)
 		process do
 			MarshalDb::Dump.dump(directory)
 		end
+		zip(zipfile, directory)
 	end
 
-	def self.load(directory)
+	def self.load(zipfile, directory)
+		unzip(zipfile, directory)
 		process do
 			MarshalDb::Load.load(directory)
 		end
@@ -21,28 +23,47 @@ module MarshalDb
 		yield if block_given?
 		ActiveRecord::Base.logger = old_logger
 	end
+
+	def self.zip(zipfile, directory)
+		File.delete(zipfile) rescue Errno::ENOENT
+
+		Dir.chdir(File.dirname(directory)) do 
+			fail "Unable to create #{zipfile}" unless system("zip -qq -r #{zipfile} #{File.basename(directory)}")
+		end
+
+		clean_work_directory(directory)
+	end
+
+	def self.unzip(zipfile, directory)
+		create_work_directory(directory)
+
+		Dir.chdir(File.dirname(directory)) do 
+			fail "Unable to unzip #{zipfile}" unless system("unzip -qq #{zipfile}")
+		end
+	end
+
+	class DirectoryError < RuntimeError ; end
+
+	def self.clean_work_directory(directory)
+		return unless File.exists?(directory)
+		raise DirectoryError, "ERROR: #{directory} is not a directory!" unless File.directory?(directory)
+
+		FileUtils.rm(Dir.glob("#{directory}/*"), :force => true)
+		Dir.rmdir(directory)
+	end
+
+	def self.create_work_directory(directory)
+		clean_work_directory(directory)
+		FileUtils.mkdir(directory)
+	end
 end
 
 
 module MarshalDb::Dump
-	class DirectoryError < RuntimeError ; end
-
 	def self.dump(directory)
-		directory_checks(directory)
+		MarshalDb.create_work_directory(directory)
 		dump_metadata(directory)
 		dump_data(directory)
-	end
-
-	def self.directory_checks(directory)
-		if File.exists?(directory) and !File.directory?(directory)
-			raise DirectoryError, "ERROR: #{directory} is not a directory!"
-		end
-
-		if !File.exists?(directory)
-			FileUtils.mkdir(directory)
-		end
-
-		FileUtils.rm(Dir.glob("#{directory}/*"), :force => true)
 	end
 
 	def self.dump_data(directory)
