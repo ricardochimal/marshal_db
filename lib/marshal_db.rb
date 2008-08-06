@@ -117,6 +117,7 @@ module MarshalDb::Load
 			records = Marshal.load(File.open("#{directory}/#{data_file}", 'r').read)
 			load_records(table, columns, records)
 		end
+		reset_pk_sequence!(table)
 	end
 
 	def self.metadata(directory)
@@ -142,6 +143,12 @@ module MarshalDb::Load
 		records.each do |record|
 			data = columns.map { |c| ActiveRecord::Base.connection.quote(record[c]) }
 			ActiveRecord::Base.connection.execute("INSERT INTO #{table} (#{columns.join(',')}) VALUES (#{data.join(',')})")
+		end
+	end
+
+	def self.reset_pk_sequence!(table)
+		if ActiveRecord::Base.connection.respond_to?(:reset_pk_sequence!)
+			ActiveRecord::Base.connection.reset_pk_sequence!(table)
 		end
 	end
 end

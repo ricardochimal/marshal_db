@@ -1,6 +1,6 @@
 require File.dirname(__FILE__) + '/base'
 
-describe MarshalDb::Dump do
+describe MarshalDb::Load do
 	before do
 		ActiveRecord::Base = mock('ActiveRecord::Base', :null_object => true)
 		ActiveRecord::Base.connection = mock('connection')
@@ -54,6 +54,7 @@ describe MarshalDb::Dump do
 
 		MarshalDb::Load.stub!(:table_data_files).with('test', 'mytable').and_return(['mytable.0'])
 		MarshalDb::Load.should_receive(:load_records).with('mytable', ['a', 'b'], [{'a'=>0,'b'=>1}])
+		MarshalDb::Load.should_receive(:reset_pk_sequence!).with('mytable')
 		MarshalDb::Load.load_table_data('test', 'mytable', ['a', 'b'])
 	end
 
@@ -71,5 +72,17 @@ describe MarshalDb::Dump do
 		MarshalDb::Load.should_receive(:load_table_data).with('test', 'mytable', ['a', 'b'])
 
 		MarshalDb::Load.load('test')
+	end
+
+	it "should reset pk sequence if the connection adapter is postgres" do
+		ActiveRecord::Base.connection.should_receive(:respond_to?).with(:reset_pk_sequence!).and_return(true)
+		ActiveRecord::Base.connection.should_receive(:reset_pk_sequence!).with('mytable')
+		MarshalDb::Load.reset_pk_sequence!('mytable')
+    end
+
+	it "should not call reset pk sequence for other adapters" do
+		ActiveRecord::Base.connection.should_receive(:respond_to?).with(:reset_pk_sequence!).and_return(false)
+		ActiveRecord::Base.connection.should_not_receive(:reset_pk_sequence!)
+		MarshalDb::Load.reset_pk_sequence!('mytable')
 	end
 end
