@@ -2,6 +2,8 @@ require 'rubygems'
 require 'active_record'
 
 module MarshalDb
+	METADATA_FILE = 'metadata.dat'
+
 	def self.dump(directory)
 		disable_logger
 		MarshalDb::Dump.dump(directory)
@@ -63,7 +65,7 @@ module MarshalDb::Dump
 		end
 		metadata
 
-		File.open("#{directory}/metadata.dat", 'w') { |f| f.write(Marshal.dump(metadata)) }
+		File.open("#{directory}/#{MarshalDb::METADATA_FILE}", 'w') { |f| f.write(Marshal.dump(metadata)) }
 	end
 
 	def self.table_metadata(table)
@@ -102,6 +104,15 @@ end
 
 module MarshalDb::Load
 	def self.load(directory)
+	end
+
+	def self.load_table_data(table, files)
+	end
+
+	def self.table_files(directory, table)
+		files = Dir.glob("#{directory}/#{table}.*")
+		files = files.reject { |file| file == MarshalDb::METADATA_FILE }
+		files
 	end
 
 	def self.truncate_table(table)

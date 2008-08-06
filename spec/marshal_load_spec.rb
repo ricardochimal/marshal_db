@@ -28,4 +28,13 @@ describe MarshalDb::Dump do
 		MarshalDb::Load.truncate_table('mytable')
 	end
 
+	it "should return a list of files for a table in a directory" do
+		Dir.stub!(:glob).with("test/mytable.*").and_return(['mytable.0', 'mytable.1'])
+		MarshalDb::Load.table_files('test', 'mytable').should == ['mytable.0', 'mytable.1']
+	end
+
+	it "should skip the metadata.dat file" do
+		Dir.stub!(:glob).with("test/metadata.*").and_return(['metadata.0', 'metadata.1', 'metadata.dat'])
+		MarshalDb::Load.table_files('test', 'metadata').should == ['metadata.0', 'metadata.1']
+	end
 end
