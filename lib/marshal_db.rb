@@ -76,6 +76,10 @@ module MarshalDb
 
 		true
 	end
+
+	def self.quote_table(table)
+		ActiveRecord::Base.connection.quote_table_name(table)
+	end
 end
 
 
@@ -120,9 +124,10 @@ module MarshalDb::Dump
 	def self.each_table_page(table, records_per_page=50000)
 		id = table_column_names(table).first
 		pages = table_pages(table, records_per_page) - 1
+		quoted_table = MarshalDb.quote_table(table)
 
 		(0..pages).to_a.each do |page|
-			sql = ActiveRecord::Base.connection.add_limit_offset!("SELECT * FROM #{table} ORDER BY #{id}", { :limit => records_per_page, :offset => records_per_page * page })
+			sql = ActiveRecord::Base.connection.add_limit_offset!("SELECT * FROM #{quoted_table} ORDER BY #{id}", { :limit => records_per_page, :offset => records_per_page * page })
 			records = ActiveRecord::Base.connection.select_all(sql)
 			yield records
 		end
@@ -135,7 +140,8 @@ module MarshalDb::Dump
 	end
 
 	def self.table_record_count(table)
-		ActiveRecord::Base.connection.select_one("SELECT COUNT(*) FROM #{table}").values.first.to_i
+		quoted_table = MarshalDb.quote_table(table)
+		ActiveRecord::Base.connection.select_one("SELECT COUNT(*) FROM #{quoted_table}").values.first.to_i
 	end
 
 	def self.table_column_names(table)
@@ -177,18 +183,20 @@ module MarshalDb::Load
 	end
 
 	def self.truncate_table(table)
+		quoted_table = MarshalDb.quote_table(table)
 		begin
-			ActiveRecord::Base.connection.execute("TRUNCATE #{table}")
+			ActiveRecord::Base.connection.execute("TRUNCATE #{quoted_table}")
 		rescue Exception
-			ActiveRecord::Base.connection.execute("DELETE FROM #{table}")
+			ActiveRecord::Base.connection.execute("DELETE FROM #{quoted_table}")
 		end
 	end
 
 	def self.load_records(table, columns, records)
+		quoted_table = MarshalDb.quote_table(table)
 		quoted_columns = columns.map { |column| ActiveRecord::Base.connection.quote_column_name(column) }.join(',')
 		records.each do |record|
 			quoted_values = columns.map { |c| ActiveRecord::Base.connection.quote(record[c]) }.join(',')
-			ActiveRecord::Base.connection.execute("INSERT INTO #{table} (#{quoted_columns}) VALUES (#{quoted_values})")
+			ActiveRecord::Base.connection.execute("INSERT INTO #{quoted_table} (#{quoted_columns}) VALUES (#{quoted_values})")
 		end
 	end
 

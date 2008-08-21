@@ -79,4 +79,9 @@ describe MarshalDb do
 		ActiveRecord::Base.configurations.stub!(:[]).with('test').and_return(@config)
 		lambda { MarshalDb.verify_utf8 }.should raise_error(MarshalDb::EncodingException)
 	end
+
+	it "quotes the table name" do
+		ActiveRecord::Base.connection.should_receive(:quote_table_name).with('values').and_return('`values`')
+		MarshalDb.quote_table('values').should == '`values`'
+	end
 end
