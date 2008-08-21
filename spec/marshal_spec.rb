@@ -3,11 +3,13 @@ require File.dirname(__FILE__) + '/base'
 describe MarshalDb do
 	before do
 		ActiveRecord::Base = mock('ActiveRecord::Base', :null_object => true)
-		ActiveRecord::Base.connection = mock('connection')
+		ActiveRecord::Base.stub!(:configurations).and_return(mock('configurations'))
+		ActiveRecord::Base.stub!(:connection).and_return(mock('connection'))
 		ActiveRecord::Base.connection.stub!(:tables).and_return([ 'mytable', 'schema_info', 'schema_migrations' ])
 		ActiveRecord::Base.connection.stub!(:columns).with('mytable').and_return([ mock('a',:name => 'a'), mock('b', :name => 'b') ])
 		ActiveRecord::Base.connection.stub!(:select_one).and_return({"count"=>"2"})
 		ActiveRecord::Base.connection.stub!(:select_all).and_return([ { 'a' => 1, 'b' => 2 }, { 'a' => 3, 'b' => 4 } ])
+		RAILS_ENV = "test"
 	end
 
 	before do
@@ -16,12 +18,14 @@ describe MarshalDb do
 	end
 
 	it "should dump the data and then zip up the files created" do
+		MarshalDb.should_receive(:verify_utf8)
 		MarshalDb::Dump.should_receive(:dump).with("rails_root/db/marshal_db")
 		MarshalDb.should_receive(:zip).with("marshal_db.zip", "rails_root/db/marshal_db")
 		MarshalDb.dump("marshal_db.zip", "rails_root/db/marshal_db")
 	end
 
 	it "should unzip the data file and then load the data" do
+		MarshalDb.should_receive(:verify_utf8)
 		MarshalDb.should_receive(:unzip).with("marshal_db.zip", "rails_root/db/marshal_db")
 		MarshalDb::Load.should_receive(:load).with("rails_root/db/marshal_db")
 		MarshalDb.load("marshal_db.zip", "rails_root/db/marshal_db")
@@ -56,5 +60,23 @@ describe MarshalDb do
 		Dir.should_receive(:rmdir).with("rails_root/db/marshal_db")
 
 		MarshalDb.clean_work_directory("rails_root/db/marshal_db")
+	end
+
+	it "verifies that the connection is encoded with unicode or utf8" do
+		@config = { 'encoding' => 'utf8' }
+		ActiveRecord::Base.configurations.stub!(:[]).with('test').and_return(@config)
+		lambda { MarshalDb.verify_utf8 }.should_not raise_error(MarshalDb::EncodingException)
+	end
+
+	it "raises an exception if encoding is not set" do
+		@config = { }
+		ActiveRecord::Base.configurations.stub!(:[]).with('test').and_return(@config)
+		lambda { MarshalDb.verify_utf8 }.should raise_error(MarshalDb::EncodingException)
+	end
+
+	it "raises an exception if encoding is not utf8 or unicode" do
+		@config = { 'encoding' => 'latin1' }
+		ActiveRecord::Base.configurations.stub!(:[]).with('test').and_return(@config)
+		lambda { MarshalDb.verify_utf8 }.should raise_error(MarshalDb::EncodingException)
 	end
 end

@@ -4,7 +4,7 @@ MarshalDb is a database-independent format for dumping and restoring data.  It c
 
 This can be used as a replacement for mysqldump or pg_dump, but only for the databases typically used by Rails apps.  Users, permissions, schemas, triggers, and other advanced database features are not supported - by design.
 
-Any database that has an ActiveRecord adapter should work.
+Any database that has an ActiveRecord adapter and UTF8 support should work.  UTF8 Support is important because it can't deal with different character encodings.
 
 == Usage
 

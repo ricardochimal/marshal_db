@@ -5,6 +5,8 @@ module MarshalDb
 	METADATA_FILE = 'metadata.dat'
 
 	def self.dump(zipfile, directory)
+		verify_utf8
+
 		process do
 			MarshalDb::Dump.dump(directory)
 		end
@@ -12,6 +14,8 @@ module MarshalDb
 	end
 
 	def self.load(zipfile, directory)
+		verify_utf8
+
 		unzip(zipfile, directory)
 		process do
 			MarshalDb::Load.load(directory)
@@ -55,6 +59,22 @@ module MarshalDb
 	def self.create_work_directory(directory)
 		clean_work_directory(directory)
 		FileUtils.mkdir(directory)
+	end
+
+	class EncodingException < RuntimeError; end
+
+	def self.verify_utf8
+		raise "RAILS_ENV is not defined" unless defined?(RAILS_ENV)
+
+		unless ActiveRecord::Base.configurations[RAILS_ENV].has_key?('encoding')
+			raise EncodingException, "Your database.yml configuration needs to specify encoding"
+		end
+
+		unless ['unicode', 'utf8'].include?(ActiveRecord::Base.configurations[RAILS_ENV]['encoding'])
+			raise EncodingException, "Your database encoding must be utf8 (mysql) or unicode (postgres)"
+		end
+
+		true
 	end
 end
 
